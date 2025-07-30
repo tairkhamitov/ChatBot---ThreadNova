@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html userLang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Чат поддержки</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<style>
+   #chatbot {
+  width: 400px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-family: Arial, sans-serif;
+}
+#chat-window {
+  height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+}
+#chat-input {
+  display: flex;
+  padding: 10px;
+  gap: 5px;
+}
+#userInput {
+  flex: 1;
+}
+.message {
+  margin: 5px 0;
+}
+.user {
+  text-align: right;
+  color: blue;
+}
+.bot {
+  text-align: left;
+  color: green;
+}
+
+</style>
+<body>
+  <div id="chatbot">
+  <div id="chat-window">
+    <div id="messages"></div>
+  </div>
+  <div id="chat-input">
+
+    <input type="text" id="userInput" placeholder="Напишите сообщение..." />
+    <button id="sendBtn">Отправить</button>
+  </div>
+</div>
+
+
+  <script>
+
+const badWords = {
+  ru: ["дурак", "мат", "плохое"],
+  en: ["fuck", "shit", "idiot"],
+  sk: ["debil", "sprostý", "idiot"]
+};
+
+const botReplies = {
+  ru: {
+    answers: {
+    trackingRequest: "📦 Пожалуйста, введите ваш трек-номер:",
+    greeting: "Здравствуйте! Чем могу помочь?",
+    farewell: "Спасибо за обращение! Хорошего дня!",
+      location: "Мы находимся в Словакии, пункт выдачи — Братислава. Работаем по всему миру.",
+      shop: "У нас онлайн-магазин и пункт выдачи в Братиславе.", 
+      meeting:"Да, вы можете забрать заказ в Братиславе по договоренности.",
+      shipping: "Да, мы отправляем заказы в любую страну.", 
+      shippingsng: "Да, работаем со странами СНГ, доставка 10–25 дней", 
+      shippingsk: "Доставка по Словакии занимает 3–7 дней.", 
+      shippingkz: "Доставка в Казахстан занимает 10–25 дней.", 
+      shippingmethod:"В Европе: DPD, GLS, UPS. В СНГ: Slovenská pošta, DHL Express.", 
+      dhlexpress:"Да, по запросу мы можем отправить DHL Express.", 
+      freeshipping:"Стоимость доставки рассчитывается автоматически, бесплатной доставки нет.", 
+      selfpickup:"Да, самовывоз доступен в Братиславе по договоренности.", 
+      payment: "Принимаем карты (Visa, MasterCard), PayPal, криптовалюту, банковский перевод (SEPA & SWIFT). Свяжитесь с нашим менеджером, завершения данной операции", 
+      paypal:"Да, вы можете оплатить заказ через PayPal.", 
+      cryptocurrency:"Да, мы принимаем криптовалюту по запросу.", 
+      ruscard:"Да, российские карты принимаются после подтверждения.", 
+      fees:"Да, пошлины зависят от страны и оплачиваются клиентом.", 
+      products:"Мы продаем кастомную одежду и аксессуары, также делаем брендинг.", 
+      custom: "Да! Отправьте ваш эскиз или идею, и мы сделаем кастомный дизайн.", 
+      branding:"Да, мы делаем логотипы, упаковку, стикеры и другое.", 
+      sale:"Да, мы предлагаем скидки на оптовые заказы.", 
+      return: "Напишите нам на email и приложите фото товара.", 
+      returnbrand:"Нет, возврат кастомной одежды возможен только при браке.", 
+      care: "Стирать при 30°C, гладить наизнанку, не отбеливать.",
+      contact: "Вы можете написать нам на email или Telegram. Email: threadnova.custom@gmail.com, Telegram: @ThreadNova_bot", 
+      wholesale: "Да, мы принимаем заказы оптом и в розницу. Напишите желаемое количество и модель.", 
+      instagram:"Да, наш Instagram: @thread.nova.", 
+      tracking:"После отправки мы вышлем вам трек-номер для отслеживания.", 
+      shipcost:"Стоимость рассчитывается после отправки заявки, менеджер посчитает и отправит вам конечную стоимость.", 
+      cash:"Нет, наложенный платеж недоступен.", 
+      prepayment:"Мы работаем по 100% предоплате, рассрочка недоступна.",
+      appleorgoogle:"Да, при оплате через PayPal вы можете использовать эти сервисы.", 
+      taxes:"Это зависит от законов вашей страны. Мы не можем заранее указать точную сумму.", 
+      logo:"Да, мы делаем корпоративные заказы с логотипами.", 
+      material:"Мы используем качественные ткани: хлопок, полиэстер, трикотаж.", 
+      katalog:"Да, у нас есть каталог готовой продукции и кастомных опций.", 
+      wholesalemin:"Минимальный оптовый заказ — 20 единиц.", 
+      sample:"Да, вы можете заказать один образец перед оптовой партией.", 
+      returnday:"Каталожные товары можно вернуть в течение 14 дней.", 
+      returnpay:"Доставка оплачивается клиентом, кроме случаев брака.", 
+      iron:"Да, гладить только наизнанку.", 
+      degree:"Нет, максимум 30°C.", 
+      bleach:"Нет, отбеливание запрещено.", 
+      telegrambot:"Да, наш Telegram: @ThreadNova_bot.", 
+      website:"Да, вы можете оформить заказ на сайте.", 
+      email:"Да, наш email: thread.novacustom@gmail.com.", 
+      whatsapp:"Да, по запросу предоставим номер.", 
+      preorder:"Да, вы можете оформить предзаказ на будущие коллекции.", 
+      loyalty:"Да, для постоянных клиентов у нас действуют скидки.", 
+      unknown: "Не совсем понял. Напишите подробнее или свяжитесь с менеджером. thread.novacustom@gmail.com"
+    }
+  },
+  en: {
+    answers: {
+    trackingRequest: "📦 Please enter your tracking number:",
+    greeting: "Hello! How can I help you?",
+    farewell: "Thank you! Have a great day!",
+      location: "We are based in Slovakia, with a pickup point in Bratislava. We work worldwide.",
+      shop: "We have an online store and a pickup point in Bratislava.",
+      meeting:"Yes, you can pick up your order in Bratislava by appointment.",
+      shipping: "Yes, we ship to any country.",
+      shippingsng: "Yes, we work with CIS countries, delivery takes 10–25 days.",
+      shippingsk: "Delivery within Slovakia takes 3–7 days.",
+      shippingkz: "Shipping to Kazakhstan takes 10–25 days.",
+      shippingmethod:"Within Europe: DPD, GLS, UPS. To CIS countries: Slovenská pošta, DHL Express.",
+      dhlexpress:"Yes, we can ship with DHL Express upon request.",
+      freeshipping:"Shipping costs are calculated automatically, there is no free shipping.",
+      selfpickup:"Yes, pickup is available in Bratislava by appointment.",
+      payment: "We accept cards (Visa, MasterCard), PayPal, cryptocurrency, bank transfer (SEPA & SWIFT). Contact our manager to complete this transaction.",
+      paypal:"Yes, you can pay via PayPal.",
+      cryptocurrency:"Yes, we accept cryptocurrency upon request.",
+      ruscard:"Yes, Russian cards are accepted upon confirmation.",
+      fees:"Yes, customs fees depend on your country and are the customer's responsibility.",
+      products:"We sell custom clothing and accessories, and also offer branding services.",
+      custom: "Yes! Send us your sketch or idea, and we’ll create your custom design.",
+      branding:"Yes, we provide logos, packaging, stickers, and more.",
+      sale:"Yes, we provide discounts for wholesale orders.",
+      return: "Email us and attach a photo of the item.",
+      returnbrand:"No, custom-made clothing can only be returned if defective.",
+      care: "Wash at max 30°C, iron inside out, do not bleach.",
+      contact: "You can contact us via email or Telegram. Email: threadnova.custom@gmail.com, Telegram: @ThreadNova_bot",
+      wholesale: "Yes, we accept both retail and wholesale orders. Send your quantity and model.",
+      instagram:"Yes, our Instagram is @thread.nova.",
+      tracking:"After shipping, we will send you a tracking number.",
+      shipcost:"The cost is calculated after you submit your request. The manager will calculate it and send you the final cost.",
+      cash:"No, cash on delivery is not available.",
+      prepayment:"We require 100% prepayment, no installments available.",
+      appleorgoogle:"Yes, you can use them via PayPal.",
+      taxes:"It depends on your country’s regulations. We can’t provide an exact amount in advance.",
+      logo:"Yes, we create corporate orders with logos.",
+      material:"We use high-quality fabrics: cotton, polyester, knitwear.",
+      katalog:"Yes, we have a catalog of ready-made and custom options.",
+      wholesalemin:"The minimum wholesale order is 20 units.",
+      sample:"Yes, you can order one sample before the wholesale batch.",
+      returnday:"Catalog items can be returned within 14 days.",
+      returnpay:"The customer pays for return shipping unless the item is defective.",
+      iron:"Yes, iron inside out only.",
+      degree:"No, max 30°C.",
+      bleach:"No, do not use bleach.",
+      telegrambot:"Yes, our Telegram is @ThreadNova_bot.",
+      website:"Yes, you can place an order on our website.",
+      email:"Yes, our email is thread.novacustom@gmail.com.",
+      whatsapp:"Yes, we can provide a number upon request.",
+      preorder:"Yes, you can place a pre-order for upcoming collections.",
+      loyalty:"Yes, we offer discounts for returning customers.",
+      unknown: "I didn’t quite get that. Please clarify or contact our manager. thread.novacustom@gmail.com"
+    }
+  },
+  sk: {
+    answers: {
+    trackingRequest: "📦 Zadajte svoje sledovacie číslo:",
+    greeting: "Dobrý deň! Ako vám môžem pomôcť?",
+    farewell: "Ďakujeme! Prajeme pekný deň!",
+      location: "Sídlime na Slovensku, odberné miesto máme v Bratislave. Spolupracujeme s klientmi po celom svete.",
+      shop: "Máme online obchod a odberné miesto v Bratislave.",
+      meeting:"Áno, môžete si vyzdvihnúť objednávku v Bratislave po dohode.",
+      shipping: "Áno, posielame objednávky do každej krajiny.",
+      shippingsng: "Áno, pracujeme s krajinami SNŠ, doručenie trvá 10–25 dní.",
+      shippingsk: "Doručenie na Slovensku trvá 3–7 dní.",
+      shippingkz: "Doručenie do Kazachstanu trvá 10–25 dní.",
+      shippingmethod:"V Európe: DPD, GLS, UPS. Do SNŠ: Slovenská pošta, DHL Express.",
+      dhlexpress:"Áno, na požiadanie môžeme poslať cez DHL Express.",
+      freeshipping:"Cena doručenia sa počíta automaticky, doprava zadarmo nie je.",
+      selfpickup:"Áno, osobný odber je možný v Bratislave po dohode.",
+      payment: "Prijímame karty (Visa, MasterCard), PayPal, kryptomenu, bankový prevod (SEPA & SWIFT). Kontaktujte nášho manažéra, aby ste dokončili túto operáciu.",
+      paypal:"Áno, môžete zaplatiť cez PayPal.",
+      cryptocurrency:"Áno, prijímame kryptomeny na požiadanie.",
+      ruscard:"Áno, ruské karty sú akceptované po potvrdení.",
+      fees:"Áno, poplatky závisia od krajiny a platí ich zákazník.",
+      products:"Predávame personalizované oblečenie a doplnky, tiež ponúkame branding.",
+      custom: "Áno! Pošlite nám svoj návrh alebo nápad a vytvoríme vám personalizovaný dizajn.",
+      branding:"Áno, poskytujeme logá, balenie, nálepky a ďalšie.",
+      sale:"Áno, poskytujeme zľavy na veľkoobchodné objednávky.",
+      return: "Napíšte nám e-mail a priložte fotografiu produktu.",
+      returnbrand:"Nie, vrátenie personalizovaného oblečenia je možné len pri chybe.",
+      care: "Prať pri max. 30°C, žehliť naruby, nebieliť.",
+      contact: "Môžete nás kontaktovať e-mailom alebo cez Telegram. Email: threadnova.custom@gmail.com, Telegram: @ThreadNova_bot",
+      wholesale: "Áno, prijímame objednávky veľkoobchodne aj maloobchodne.",
+      instagram:"Áno, náš Instagram je @thread.nova.",
+      tracking:"Po odoslaní vám pošleme sledovacie číslo.",
+      shipcost:"Cena sa vypočíta po odoslaní žiadosti, manažér ju vypočíta a zašle vám konečnú cenu.",
+      cash:"Nie, platba na dobierku nie je dostupná.",
+      prepayment:"Vyžadujeme 100% platbu vopred, splátky nie sú dostupné.",
+      appleorgoogle:"Áno, môžete ich použiť cez PayPal.",
+      taxes:"Závisí to od zákonov vašej krajiny. Nemôžeme uviesť presnú sumu vopred.",
+      logo:"Áno, robíme firemné objednávky s logami.",
+      material:"Používame kvalitné látky: bavlna, polyester, úplet.",
+      katalog:"Áno, máme katalóg hotových produktov a personalizovaných možností.",
+      wholesalemin:"Minimálna veľkoobchodná objednávka je 20 kusov.",
+      sample:"Áno, môžete si objednať jednu vzorku pred veľkým množstvom.",
+      returnday:"Katalógové produkty môžete vrátiť do 14 dní.",
+      returnpay:"Zákazník platí poštovné pri vrátení, okrem prípadov chyby.",
+      iron:"Áno, žehliť len naruby.",
+      degree:"Nie, maximum je 30°C.",
+      bleach:"Nie, nebieliť.",
+      telegrambot:"Áno, náš Telegram je @ThreadNova_bot.",
+      website:"Áno, môžete objednať cez našu webovú stránku.",
+      email:"Áno, náš e-mail je thread.novacustom@gmail.com.",
+      whatsapp:"Áno, môžeme poskytnúť číslo na požiadanie.",
+      preorder:"Áno, môžete si urobiť predobjednávku na budúce kolekcie.",
+      loyalty:"Áno, ponúkame zľavy pre stálych zákazníkov.",
+      unknown: "Nerozumel som. Prosím, uveďte viac alebo kontaktujte manažéra. thread.novacustom@gmail.com"
+      
+    }
+  }
+};
+function preprocess(text) {
+  // 1. Привести к нижнему регистру
+  text = text.toLowerCase();
+
+  // 2. Удалить знаки препинания
+  text = text.replace(/[.,!?;:()"]/g, '');
+
+  // 3. Удалить стоп-слова
+  const stopWords = ['ну', 'а', 'и', 'же', 'вот', 'пожалуйста', 'скажите', 'можно', 'ли', 'вы'];
+  stopWords.forEach(word => {
+    const regex = new RegExp('\\b' + word + '\\b', 'gi');
+    text = text.replace(regex, '');
+  });
+
+  // 4. Удалить лишние пробелы
+  text = text.trim().replace(/\s+/g, ' ');
+
+  return text;
+}
+  const intents = [
+    {
+      name: "trackingRequest",
+      patterns: [
+        // RU
+        "где мой заказ", "отследить заказ", "хочу отследить", "отслеживание", "трек номер", "трек-номер", "трекномер",
+        "номер отправления", "номер отслеживания", "узнать статус", "когда придет заказ", "статус доставки",
+        // EN
+        "where is my order", "track my order", "tracking number", "order status", "track shipment", "track package",
+        "delivery status", "check my order", "shipment number",
+        // SK
+        "kde je moja objednávka", "sledovať objednávku", "sledovacie číslo", "stav objednávky", "sledovanie zásielky",
+        "kde je balík", "číslo zásielky", "overiť objednávku"
+      ],
+      responseKey: "trackingRequest"
+    },
+    { name: "greeting", patterns: ["прив", "hi", "ahoj", "здаров", "hello", "здравствуйте", "good morning", "dobrý deň"], responseKey: "greeting" },
+    { name: "location", patterns: ["адрес", "address", "adresu", "находит", "base", "nachádzate", "локация", "locat", "lokalizovať"], responseKey: "location" },
+    { name: "shop", patterns: ["физичес", "physic", "obchod", "онлайн", "online"], responseKey: "shop" },
+    { name: "meeting", patterns: ["лично", "in person", "osobne"], responseKey: "meeting" },
+    { 
+      name: "shipping", 
+      patterns: [
+        "всему миру", "worldwide", "celom svete", 
+        "страны", "countries", "krajiny", 
+        "куда", "wherever", "kam", 
+        "доставка", "отправка", "отправляете", "доставляете"
+      ], 
+      responseKey: "shipping" 
+    },
+    { name: "shippingsng", patterns: ["из казахстана", "from kazakhstan", "z kazachstanu", "из украины", "from ukraine", "z ukrajiny", "из россии", "from russia", "z ruzka"], responseKey: "shippingsng" },
+    { name: "shippingsk", patterns: ["словак", "slovak", "slovensk"], responseKey: "shippingsk" },
+    { name: "shippingkz", patterns: ["в казахстан", "to kazakhstan", "do kazachstanu"], responseKey: "shippingkz" },
+    { name: "shippingmethod", patterns: ["служба доставки", "shipping carrier", "doručovacia služba", "службу доставки", "shipping method", "doručovacia služby", "службы доставки", "doručovacia službi"], responseKey: "shippingmethod" },
+    { name: "dhlexpress", patterns: ["dhl", "быстр", "fast", "rýchl"], responseKey: "dhlexpress" },
+    { name: "freeshipping", patterns: ["бесплатн", "free", "zadarm"], responseKey: "freeshipping" },
+    { name: "selfpickup", patterns: ["самовывоз", "myself", "samovývoz"], responseKey: "selfpickup" },
+    { name: "payment", patterns: ["способ оплаты", "способы оплаты", "payment method", "spôsob platby", "spôsoby platby", "оплата", "оплатить", "карта", "картой", "visa", "mastercard"], responseKey: "payment" },
+    { name: "paypal", patterns: ["paypal"], responseKey: "paypal" },
+    { name: "cryptocurrency", patterns: ["крипт", "crypt", "krypt"], responseKey: "cryptocurrency" },
+    { name: "ruscard", patterns: ["картой из россии", "россиской картой", "russian card", "ruská karta", "ruské karty"], responseKey: "ruscard" },
+    { name: "fees", patterns: ["тамож", "fee", "poplatok", "пошлин", "poplatky"], responseKey: "fees" },
+    { name: "products", patterns: ["товар", "product", "produkt"], responseKey: "products" },
+    { name: "custom", patterns: ["свой дизайн", "own design", "vlastný dizajn"], responseKey: "custom" },
+    { name: "branding", patterns: ["брендирован", "branding", "brandingové"], responseKey: "branding" },
+    { name: "sale", patterns: ["скидк", "discount", "zľav"], responseKey: "sale" },
+    { name: "return", patterns: ["верну", "возврат", "return", "vrátiť"], responseKey: "return" },
+    { name: "returnbrand", patterns: ["вернуть кастом", "возврат кастом", "return custom", "vrátiť vlastné", "vrátenie zákazkového"], responseKey: "returnbrand" },
+    { name: "wholesale", patterns: ["оптом", "оптов", "wholesale", "veľkoobchod"], responseKey: "wholesale" },
+    { name: "care", patterns: ["ухаж", "уход", "care", "caring", "starať", "starostlivosť"], responseKey: "care" },
+    { name: "contact", patterns: ["связ", "contact", "kontakt"], responseKey: "contact" },
+    { name: "instagram", patterns: ["instagram", "инстаграм"], responseKey: "instagram" },
+    { name: "tracking", patterns: ["трек", "track", "sledovacie", "мой заказ", "my order", "moja objednávka"], responseKey: "tracking" },
+    {
+      name: "shipcost",
+      patterns: [
+        "стоит доставка", "цена доставк", "стоимость доставки", 
+        "сколько стоит", "сколько доставка", "сколько", 
+        "shipping cost", "cost of the shipping", 
+        "how much", "cena dopravy", "stojí doprava"
+      ],
+      responseKey: "shipcost"
+    },
+    { name: "cash", patterns: ["налич", "налом", "cash", "hotovosť", "dobierk"], responseKey: "cash" },
+    { name: "prepayment", patterns: ["рассрочк", "предоплат", "partial", "installment", "splátk", "predplatb"], responseKey: "prepayment" },
+    { name: "appleorgoogle", patterns: ["apple pay", "google pay", "эпл пэй", "гугл пэй"], responseKey: "appleorgoogle" },
+    { name: "taxes", patterns: ["налог", "tax", "dane"], responseKey: "taxes" },
+    { name: "logo", patterns: ["лого", "logo"], responseKey: "logo" },
+    { name: "material", patterns: ["материал", "material", "materiál"], responseKey: "material" },
+    { name: "katalog", patterns: ["каталог", "catalog", "katalóg"], responseKey: "katalog" },
+    { name: "wholesalemin", patterns: ["минимал", "minimum", "minimál"], responseKey: "wholesalemin" },
+    { name: "sample", patterns: ["образ", "sample", "vzork"], responseKey: "sample" },
+    { name: "returnday", patterns: ["дней на возврат", "days to return", "dni na vrátenie"], responseKey: "returnday" },
+    { name: "returnpay", patterns: ["оплачивает возврат", "pays for return", "platí za vrátenie"], responseKey: "returnpay" },
+    { name: "iron", patterns: ["гладит", "утюг", "iron", "žehliť", "žehličk"], responseKey: "iron" },
+    { name: "degree", patterns: ["стирать", "градус", "wash", "degree", "prať", "stupň"], responseKey: "degree" },
+    { name: "bleach", patterns: ["белизн", "bleach", "bielidlo"], responseKey: "bleach" },
+    { name: "telegrambot", patterns: ["telegram", "телеграм"], responseKey: "telegrambot" },
+    { name: "website", patterns: ["сайт", "website", "webov"], responseKey: "website" },
+    { name: "email", patterns: ["мейл", "email", "mail"], responseKey: "email" },
+    { name: "whatsapp", patterns: ["whatsapp", "ватс", "wattsapp"], responseKey: "whatsapp" },
+    { name: "preorder", patterns: ["предзаказ", "preorder", "predobjednávk"], responseKey: "preorder" },
+    { name: "loyalty", patterns: ["лояль", "loyal", "vernost"], responseKey: "loyalty" },
+    { name: "farewell", patterns: ["пока", "прощай", "bye", "goodbye", "dovy", "do videnia"], responseKey: "farewell" },
+    { name: "unknown", patterns: [], responseKey: "unknown" }
+  ];
+
+  let lastUserMessage = "";
+  let lastIntent = null;
+  let userLang = null;
+  function intentTitleRu(key) {
+    const titles = {
+      shipping: "Доставка", payment: "Оплата", location: "Адрес", products: "Товары",
+      custom: "Кастом", branding: "Брендинг", fees: "Пошлины", return: "Возврат",
+      contact: "Контакты", tracking: "Отслеживание", katalog: "Каталог", 
+      // Добавь остальные ключи, если нужно
+    };
+    return titles[key] || key;
+  }
+
+  function intentTitleEn(key) {
+    const titles = {
+      shipping: "Shipping", payment: "Payment", location: "Location", products: "Products",
+      custom: "Custom Design", branding: "Branding", fees: "Fees", return: "Returns",
+      contact: "Contact", tracking: "Tracking", katalog: "Catalog",
+    };
+    return titles[key] || key;
+  }
+
+  function intentTitleSk(key) {
+    const titles = {
+      shipping: "Doručenie", payment: "Platba", location: "Adresa", products: "Produkty",
+      custom: "Vlastný Dizajn", branding: "Branding", fees: "Poplatky", return: "Vrátenie",
+      contact: "Kontakt", tracking: "Sledovanie", katalog: "Katalóg",
+    };
+    return titles[key] || key;
+  }
+
+  const languageKeywords = {
+    ru: [
+  "прив", "здравствуйте", "доставка", "оплата", "товар", "адрес", "карта",
+  "где", "мой", "заказ", "трек", "номер", "отследить", "статус"
+   ],
+    en: ["hello", "shipping", "payment", "product", "address", "card"],
+    sk: ["ahoj", "doručenie", "platba", "produkt", "adresa", "karta"]
+  };
+  
+  function detectLanguage(text) {
+  const scores = { ru: 0, en: 0, sk: 0 };
+
+  for (const [userLang, keywords] of Object.entries(languageKeywords)) {
+    for (const keyword of keywords) {
+      if (text.includes(keyword)) scores[userLang]++;
+    }
+  }
+
+  const detected = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+  return detected[1] > 0 ? detected[0] : "en"; // fallback на английский
+}
+  let trackingAwait = false;
+        function retryTracking(userLang) {
+          trackingAwait = true;
+
+          const messages = document.getElementById('messages');
+          const promptText = {
+            ru: "📦 Пожалуйста, введите ваш трек-номер:",
+            en: "📦 Please enter your tracking number:",
+            sk: "📦 Zadajte svoje sledovacie číslo:"
+          };
+
+          messages.innerHTML += `<div class="message bot">${promptText[userLang]}</div>`;
+          messages.scrollTop = messages.scrollHeight;
+        }
+  function handleTrackingNumber(trackNum, userLang) {
+    fetch(`https://script.google.com/macros/s/AKfycbwjzu2NBbhHVZ_pqxI2QXBAFPUfbcxAxzVh6rsrxveiMClc1P9cfcSUE-ZazY8l7m2R/exec?track=${trackNum}`)
+      .then(res => res.json())
+      .then(data => {
+        let reply;
+        if (data.error) {
+          const retryText = {
+            ru: "⚠ Не удалось найти заказ с таким номером. Проверьте и попробуйте снова.",
+            en: "⚠ Order not found. Please check the number and try again.",
+            sk: "⚠ Objednávku s týmto číslom sa nepodarilo nájsť. Skúste to znova."
+          };
+          
+          reply = `${retryText[userLang]}<br><br><button onclick="retryTracking('${userLang}')" style="margin-top:10px;padding:5px 10px;">🔁 ${userLang === "ru" ? "Повторить" : userLang === "sk" ? "Zopakovať" : "Retry"}</button>`;
+        } else {
+          reply = `📦 Статус заказа ${data.track}: <b>${data.status}</b><br>🗓 Обновлено: ${data.date}<br>💬 Комментарий: ${data.comment}`;
+        }
+
+        // Показываем «печатает»
+        const messages = document.getElementById('messages');
+        const typingTexts = {
+          ru: "🤖 Бот печатает...",
+          en: "🤖 Bot is typing...",
+          sk: "🤖 Bot píše..."
+        };
+        messages.innerHTML += `<div class="message bot typing">${typingTexts[userLang]}</div>`;
+        messages.scrollTop = messages.scrollHeight;
+
+        setTimeout(() => {
+          document.querySelector('.typing')?.remove();
+          messages.innerHTML += `<div class="message bot">${reply}</div>`;
+          messages.scrollTop = messages.scrollHeight;
+        }, 700);
+      });
+  }
+
+  function sendMessage() {
+    const rawInput = document.getElementById('userInput').value.trim();
+    if (!rawInput) return;
+
+    const userMsg = preprocess(rawInput);
+    if (!userLang) {
+      userLang = detectLanguage(userMsg);
+    }
+    const lastIntentSession = sessionStorage.getItem("lastIntent");
+    const messages = document.getElementById('messages');
+
+    let reply = botReplies[userLang].answers.unknown;
+
+    // Отображаем сообщение пользователя
+    messages.innerHTML += `<div class="message user">${rawInput}</div>`;
+    document.getElementById('userInput').value = "";
+
+    // Обработка трек-номера
+    if (trackingAwait) {
+      trackingAwait = false;
+      handleTrackingNumber(rawInput, userLang);
+      return;
+    }
+
+    // Обработка уточнения после "доставка"
+    if (lastIntentSession === "shipping") {
+      if (userMsg.includes("казахстан")) {
+        reply = botReplies[userLang].answers["shippingkz"];
+      } else if (userMsg.includes("росси")) {
+        reply = botReplies[userLang].answers["shippingsng"];
+      } else if (userMsg.includes("словак")) {
+        reply = botReplies[userLang].answers["shippingsk"];
+      }
+
+      if (reply !== botReplies[userLang].answers.unknown) {
+        showBotReply(reply, userLang);
+        return;
+      }
+    }
+
+    // Плохие слова
+    if (badWords[userLang].some(word => userMsg.includes(word))) {
+      reply = "⚠ Пожалуйста, используйте вежливые выражения.";
+      showBotReply(reply, userLang, "red");
+      return;
+    }
+
+    // Поиск интентов
+    let detectedIntents = [];
+    for (const intent of intents) {
+      let score = 0;
+      for (const pattern of intent.patterns) {
+        if (userMsg.includes(pattern)) score++;
+      }
+      if (score > 0) detectedIntents.push({ intent, score });
+    }
+
+    detectedIntents.sort((a, b) => b.score - a.score);
+    const priorityIntent = detectedIntents.find(d => d.intent.name === "trackingRequest");
+    if (priorityIntent) {
+      detectedIntents = [priorityIntent];
+    }
+
+    lastIntent = detectedIntents[0]?.intent.name || null;
+    sessionStorage.setItem("lastIntent", lastIntent);
+
+    if (detectedIntents.length > 0) {
+      if (detectedIntents.length > 1) {
+        reply = "Вы спрашиваете сразу о нескольких вещах:";
+        for (const { intent } of detectedIntents.slice(0, 3)) {
+          const answer = botReplies[userLang].answers[intent.responseKey];
+          reply += `<br><br><b>• ${intent.name}:</b><br>${answer}`;
+        }
+      } else {
+        const intent = detectedIntents[0].intent;
+        reply = botReplies[userLang].answers[intent.responseKey];
+
+        if (intent.responseKey === "tracking" || intent.responseKey === "trackingRequest") {
+          trackingAwait = true;
+          reply = botReplies[userLang].answers.trackingRequest;
+        }
+      }
+    } else {
+      // fallback
+      reply += "<br><br>🤖 Я не до конца понял ваш вопрос. Вот с чем могу помочь:<br>👉 доставка, оплата, возврат, отслеживание<br><br>📩 Или напишите: <a href='mailto:thread.novacustom@gmail.com'>thread.novacustom@gmail.com</a>";
+    }
+
+    showBotReply(reply, userLang);
+  }
+
+  function showBotReply(reply, userLang, color = null) {
+    const messages = document.getElementById('messages');
+    const typingText = {
+      ru: "🤖 Бот печатает...",
+      en: "🤖 Bot is typing...",
+      sk: "🤖 Bot píše..."
+    };
+
+    messages.innerHTML += `<div class="message bot typing">${typingText[userLang]}</div>`;
+    messages.scrollTop = messages.scrollHeight;
+
+    setTimeout(() => {
+      document.querySelector('.typing')?.remove();
+      messages.innerHTML += `<div class="message bot" ${color ? `style="color:${color};"` : ""}>${reply}</div>`;
+      messages.scrollTop = messages.scrollHeight;
+    }, 700);
+  }
+
+    messages.scrollTop = messages.scrollHeight;
+
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
+document.getElementById("userInput").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") sendMessage();
+});
+
+window.retryTracking = retryTracking;
+
+  </script>
+</body>
+</html>
