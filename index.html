@@ -334,7 +334,7 @@ function preprocess(text) {
         "где мой заказ", "отследить заказ", "хочу отследить", "отслеживание", "трек номер", "трек-номер", "трекномер",
         "номер отправления", "номер отслеживания", "узнать статус", "когда придет заказ", "статус доставки",
         // EN
-        "where is my order", "track my order", "tracking number", "order status", "track shipment", "track package",
+        "where is my order", "track my order", "tracking number", "order status", "track shipment", "track package", "order?",
         "delivery status", "check my order", "shipment number",
         // SK
         "kde je moja objednávka", "sledovať objednávku", "sledovacie číslo", "stav objednávky", "sledovanie zásielky",
@@ -479,40 +479,60 @@ function preprocess(text) {
           messages.innerHTML += `<div class="message bot">${promptText[userLang]}</div>`;
           messages.scrollTop = messages.scrollHeight;
         }
-  function handleTrackingNumber(trackNum, userLang) {
-    fetch(`https://script.google.com/macros/s/AKfycbwjzu2NBbhHVZ_pqxI2QXBAFPUfbcxAxzVh6rsrxveiMClc1P9cfcSUE-ZazY8l7m2R/exec?track=${trackNum}`)
-      .then(res => res.json())
-      .then(data => {
-        let reply;
-        if (data.error) {
-          const retryText = {
-            ru: "⚠ Не удалось найти заказ с таким номером. Проверьте и попробуйте снова.",
-            en: "⚠ Order not found. Please check the number and try again.",
-            sk: "⚠ Objednávku s týmto číslom sa nepodarilo nájsť. Skúste to znova."
-          };
-          
-          reply = `${retryText[userLang]}<br><br><button onclick="retryTracking('${userLang}')" style="margin-top:10px;padding:5px 10px;">🔁 ${userLang === "ru" ? "Повторить" : userLang === "sk" ? "Zopakovať" : "Retry"}</button>`;
-        } else {
-          reply = `📦 Статус заказа ${data.track}: <b>${data.status}</b><br>🗓 Обновлено: ${data.date}<br>💬 Комментарий: ${data.comment}`;
-        }
+      function handleTrackingNumber(trackNum, userLang) {
+        fetch(`https://script.google.com/macros/s/AKfycbwjzu2NBbhHVZ_pqxI2QXBAFPUfbcxAxzVh6rsrxveiMClc1P9cfcSUE-ZazY8l7m2R/exec?track=${trackNum}`)
+          .then(res => res.json())
+          .then(data => {
+            let reply;
 
-        // Показываем «печатает»
-        const messages = document.getElementById('messages');
-        const typingTexts = {
-          ru: "🤖 Бот печатает...",
-          en: "🤖 Bot is typing...",
-          sk: "🤖 Bot píše..."
-        };
-        messages.innerHTML += `<div class="message bot typing">${typingTexts[userLang]}</div>`;
-        messages.scrollTop = messages.scrollHeight;
+            const translations = {
+              ru: {
+                notFound: "⚠ Не удалось найти заказ с таким номером. Проверьте и попробуйте снова.",
+                retry: "Повторить",
+                statusLabel: "📦 Статус заказа",
+                updated: "🗓 Обновлено",
+                comment: "💬 Комментарий",
+                typing: "🤖 Бот печатает..."
+              },
+              en: {
+                notFound: "⚠ Order not found. Please check the number and try again.",
+                retry: "Retry",
+                statusLabel: "📦 Order status",
+                updated: "🗓 Updated",
+                comment: "💬 Comment",
+                typing: "🤖 Bot is typing..."
+              },
+              sk: {
+                notFound: "⚠ Objednávku s týmto číslom sa nepodarilo nájsť. Skúste to znova.",
+                retry: "Zopakovať",
+                statusLabel: "📦 Stav objednávky",
+                updated: "🗓 Aktualizované",
+                comment: "💬 Komentár",
+                typing: "🤖 Bot píše..."
+              }
+            };
 
-        setTimeout(() => {
-          document.querySelector('.typing')?.remove();
-          messages.innerHTML += `<div class="message bot">${reply}</div>`;
-          messages.scrollTop = messages.scrollHeight;
-        }, 700);
-      });
-  }
+            const t = translations[userLang] || translations["en"]; // fallback на английский
+
+            if (data.error) {
+              reply = `${t.notFound}<br><br><button onclick="retryTracking('${userLang}')" style="margin-top:10px;padding:5px 10px;">🔁 ${t.retry}</button>`;
+            } else {
+              reply = `${t.statusLabel} ${data.track}: <b>${data.status}</b><br>${t.updated}: ${data.date}<br>${t.comment}: ${data.comment}`;
+            }
+
+            // Показываем «печатает...»
+            const messages = document.getElementById('messages');
+            messages.innerHTML += `<div class="message bot typing">${t.typing}</div>`;
+            messages.scrollTop = messages.scrollHeight;
+
+            setTimeout(() => {
+              document.querySelector('.typing')?.remove();
+              messages.innerHTML += `<div class="message bot">${reply}</div>`;
+              messages.scrollTop = messages.scrollHeight;
+            }, 700);
+          });
+      }
+
 
   function sendMessage() {
     const rawInput = document.getElementById('userInput').value.trim();
